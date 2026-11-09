@@ -20,6 +20,9 @@ void forEachBaseSetting(SettingVisitor visit, void* context) {
     values[CrossPointSettings::QUICK_RESUME] = StrId::STR_QUICK_RESUME;
     values[CrossPointSettings::TRANSPARENT_CUSTOM] = StrId::STR_TRANSPARENT;
     values[CrossPointSettings::COVER_TRANSPARENT] = StrId::STR_COVER_TRANSPARENT;
+    values[CrossPointSettings::READING_MAP] = StrId::STR_READING_MAP;
+    values[CrossPointSettings::TIME_LEFT] = StrId::STR_TIME_LEFT;
+    values[CrossPointSettings::BATTERY_FILL] = StrId::STR_BATTERY_FILL;
     return values;
   }();
   static constexpr auto STATUS_BAR_CLOCK_VALUES = [] {
@@ -39,6 +42,8 @@ void forEachBaseSetting(SettingVisitor visit, void* context) {
   emit(SettingInfo::Enum(StrId::STR_SLEEP_COVER_FILTER, &CrossPointSettings::sleepScreenCoverFilter,
                          {StrId::STR_NONE_OPT, StrId::STR_FILTER_CONTRAST, StrId::STR_INVERTED},
                          "sleepScreenCoverFilter", StrId::STR_CAT_DISPLAY));
+  emit(SettingInfo::Enum(StrId::STR_TIME_LEFT_BACKGROUND, &CrossPointSettings::timeLeftBackground,
+                         {StrId::STR_DARK, StrId::STR_LIGHT}, "timeLeftBackground", StrId::STR_CAT_DISPLAY));
   emit(SettingInfo::Enum(StrId::STR_QUICK_RESUME_TIMEOUT, &CrossPointSettings::quickResumeSleepScreen,
                          {StrId::STR_STATE_OFF, StrId::STR_STATE_ON}, "quickResumeSleepScreen",
                          StrId::STR_CAT_DISPLAY));
@@ -49,6 +54,9 @@ void forEachBaseSetting(SettingVisitor visit, void* context) {
                          {StrId::STR_PAGES_1, StrId::STR_PAGES_5, StrId::STR_PAGES_10, StrId::STR_PAGES_15,
                           StrId::STR_PAGES_30, StrId::STR_NEVER},
                          "refreshFrequency", StrId::STR_CAT_DISPLAY));
+  emit(SettingInfo::Enum(StrId::STR_HOME_STYLE, &CrossPointSettings::homeStyle,
+                         {StrId::STR_HOME_STYLE_DASHBOARD, StrId::STR_HOME_STYLE_PAGES}, "homeStyle",
+                         StrId::STR_CAT_DISPLAY));
   emit(SettingInfo::Enum(StrId::STR_UI_THEME, &CrossPointSettings::uiTheme, homeThemeValues(), "uiTheme",
                          StrId::STR_CAT_DISPLAY));
   if (!BoardConfig::hasTouch())
@@ -212,6 +220,7 @@ void forEachBaseSetting(SettingVisitor visit, void* context) {
 
   // OPDS download folder: persisted + web-exposed, but category-less so it
   // is hidden from the on-device Settings screen (edited via OPDS UI).
+  emit(SettingInfo::String(StrId::STR_HOME_LAYOUT, &SETTINGS.homeLayout[0], sizeof(SETTINGS.homeLayout), "homeLayout"));
   emit(SettingInfo::String(StrId::STR_OPDS_DOWNLOAD_FOLDER, &SETTINGS.opdsDownloadFolder[0],
                            sizeof(SETTINGS.opdsDownloadFolder), "opdsDownloadFolder"));
   // OPDS download filename format: persisted + web-exposed, category-less so it

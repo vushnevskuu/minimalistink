@@ -17,6 +17,7 @@
 #include "LinkNoteTitle.h"
 #include "ProgressMapper.h"
 #include "ReaderActivity.h"
+#include "ReaderPlaceRequest.h"
 #include "ReaderToolbarUi.h"
 #include "components/OptionPopup.h"
 
@@ -26,6 +27,7 @@ class EpubReaderActivity final : public ReaderActivity {
   int currentSpineIndex = 0;
   int nextPageNumber = 0;
   std::optional<uint16_t> pendingPageJump;
+  std::optional<placerequest::Request> pendingTextJump;
   std::string pendingAnchor;
   int cachedSpineIndex = 0;
   int cachedChapterTotalPageCount = 0;
@@ -165,6 +167,8 @@ class EpubReaderActivity final : public ReaderActivity {
   void clearDeferredReposition();
   void rememberCurrentContentOffset();
   bool saveProgress(int spineIndex, int currentPage, int pageCount);
+  void saveProgressIfDue(bool force);
+  void flushProgress() override { saveProgressIfDue(true); }
   void jumpToPercent(int percent);
   void onReaderMenuConfirm(EpubReaderMenuActivity::MenuAction action);
   int currentTocIndex() const;
@@ -173,6 +177,7 @@ class EpubReaderActivity final : public ReaderActivity {
   ChapterPosition chapterPosition() const;
   int bookPercentFor(const ChapterPosition& position) const;
   void openReaderMenu();
+  void openQuickMenu();
   // Toolbar reader menu (see Overlay above).
   bool usesToolbarMenu() const;
   void openOverlay(Overlay target);
@@ -245,6 +250,8 @@ class EpubReaderActivity final : public ReaderActivity {
   std::string getBookAuthor() const override { return epub ? epub->getAuthor() : ""; }
   std::string getBookThumbBmpPath() const override { return epub ? epub->getThumbBmpPath() : ""; }
   int getProgressBasisPoints() const override;
+  int estimatedPagesLeft() const override;
+  bool currentPageExcerpt(std::string& text) const override;
   void renderBook() override;
   void onEndOfBookRendered() override;
 

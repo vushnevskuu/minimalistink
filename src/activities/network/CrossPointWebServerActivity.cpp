@@ -10,6 +10,7 @@
 
 #include <cstddef>
 
+#include "CrossPointState.h"
 #include "MappedInputManager.h"
 #include "NetworkModeSelectionActivity.h"
 #include "SilentRestart.h"
@@ -313,6 +314,7 @@ void CrossPointWebServerActivity::startWebServer() {
                      mappedInput.wasPressed(MappedInputManager::Button::Back) || mappedInput.wasHomeGesture();
     return leaveRequested;
   });
+  webServer->enableOpenRequests();
   webServer->begin();
 
   if (webServer->isRunning()) {
@@ -408,6 +410,15 @@ void CrossPointWebServerActivity::loop() {
       constexpr int MAX_ITERATIONS = 500;
       for (int i = 0; i < MAX_ITERATIONS && webServer->isRunning(); i++) {
         webServer->handleClient();
+        std::string bookToOpen;
+        if (webServer->takePendingOpen(bookToOpen)) {
+          APP_STATE.openEpubPath = bookToOpen;
+          APP_STATE.saveToFile();
+          delay(200);  // lets the reply reach the phone before Wi-Fi goes down
+          silentRestartToReader();
+          activityManager.goToReader(bookToOpen);
+          return;
+        }
         if (leaveRequested) {
           onGoHome();
           return;

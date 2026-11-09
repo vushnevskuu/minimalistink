@@ -9,6 +9,10 @@
 
 namespace ProgressFile {
 
+// How far the position may move from the last saved page before saving again.
+// Sleep and exit always save, so these pages are lost only to a crash, power loss or failed chapter build.
+constexpr int SAVE_EVERY_PAGES = 5;
+
 // Writes `len` bytes of reader progress to `<cachePath>/progress.bin` without
 // ever leaving the canonical file half-written.
 //

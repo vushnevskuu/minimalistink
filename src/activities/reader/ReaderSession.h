@@ -14,6 +14,7 @@ class ReaderSession {
   int64_t startTime() const { return startEpoch; }
   int64_t endTime() const { return startEpoch > 0 ? startEpoch + duration : 0; }
   uint32_t durationSeconds() const { return duration; }
+  uint32_t pagesCounted() const { return pages; }
   uint16_t startProgressBp() const { return startProgress; }
   uint16_t endProgressBp() const { return endProgress; }
 
@@ -24,6 +25,7 @@ class ReaderSession {
   int64_t anchorEpoch = 0;
   int64_t startEpoch = 0;
   uint32_t duration = 0;
+  uint32_t pages = 0;
   uint16_t anchorProgress = 0;
   uint16_t startProgress = 0;
   uint16_t endProgress = 0;

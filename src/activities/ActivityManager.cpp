@@ -19,9 +19,12 @@
 #include "boot_sleep/SleepActivity.h"
 #include "browser/OpdsBookBrowserActivity.h"
 #include "components/HeaderBackTapTarget.h"
+#include "components/HomeDashboard.h"
+#include "components/UITheme.h"
 #include "home/CrashActivity.h"
 #include "home/FileBrowserActivity.h"
 #include "home/HomeActivity.h"
+#include "home/HomePagesActivity.h"
 #include "library/LibraryListActivity.h"
 #include "network/CrossPointWebServerActivity.h"
 #include "network/UsbDriveActivity.h"
@@ -372,6 +375,10 @@ void ActivityManager::goHome(HomeMenuItem initialMenuItem, bool cleanInitialRefr
     } else if (activityName == "Settings" || activityName == "SettingsList") {
       initialMenuItem = HomeMenuItem::SETTINGS_MENU;
     }
+  }
+  if (SETTINGS.homeStyle == CrossPointSettings::HOME_STYLE_SCREENS && homeLayoutsSupported(renderer)) {
+    replaceActivity(std::make_unique<HomePagesActivity>(renderer, mappedInput, initialMenuItem, cleanInitialRefresh));
+    return;
   }
   replaceActivity(std::make_unique<HomeActivity>(renderer, mappedInput, initialMenuItem, cleanInitialRefresh));
 }

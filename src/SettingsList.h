@@ -286,9 +286,11 @@ inline bool isHiddenOnDevice(const SettingInfo& s) {
       return slideSwitchOwns(CrossPointSettings::SLIDE_SWITCH_TOUCH_CONTROLS);
     // Tilt page turn needs an IMU with a gyroscope. A failed probe on one boot
     // must not drop the saved value.
+    case StrId::STR_HOME_STYLE:
+      return BoardConfig::hasTouch();
     case StrId::STR_TILT_PAGE_TURN:
       return !halTiltSensor.isAvailable();
-    // Clock settings need the RTC, as on the device (ClockSettingsActivity).
+    // Web settings: clock entries need the RTC. The device UI offers timezone and DST on every board.
     case StrId::STR_CLOCK:
     case StrId::STR_CLOCK_FORMAT:
     case StrId::STR_TIMEZONE:

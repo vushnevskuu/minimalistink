@@ -1,5 +1,25 @@
 # CrossPoint Reader
 
+> **This is a personal fork** with a redesigned interface for the Xteink X4. It is not an official CrossPoint release. Everything below the screenshots is the original project's README.
+
+## Interface in this fork
+
+| Reading | Shelves | Statistics and menu |
+| :---: | :---: | :---: |
+| ![Home screen with the current book](./docs/images/x4-ui/home-reading.png) | ![Bookshelf home screen](./docs/images/x4-ui/home-shelves.png) | ![Reading calendar and buttons](./docs/images/x4-ui/home-stats.png) |
+
+| Book menu | Chapter list in the menu | Book page |
+| :---: | :---: | :---: |
+| ![Book menu with orientation, font, size and page QR](./docs/images/x4-ui/book-menu.png) | ![Chapter dropdown in the book menu](./docs/images/x4-ui/book-menu-chapters.png) | ![A book page](./docs/images/x4-ui/reading.png) |
+
+| Sleep: reading map | Sleep: time left |
+| :---: | :---: |
+| ![Reading map sleep screen](./docs/images/x4-ui/sleep-reading-map.png) | ![Time left sleep screen](./docs/images/x4-ui/sleep-time-left.png) |
+
+Screens come from the simulator with invented sample books and reading data. This firmware has not been tested on hardware yet.
+
+---
+
 [![Fund contributors](https://img.shields.io/badge/%F0%9F%91%91_Fund_contributors-royalty.dev-BB953A?style=for-the-badge&labelColor=1a1a1a)](https://app.royalty.dev/crosspoint-reader/crosspoint-reader)
 
 CrossPoint is open-source e-reader firmware - community-built, fully hackable, free forever. It's maintained by a growing community of developers and readers who believe your device should do what you want - not what a manufacturer decided for you.

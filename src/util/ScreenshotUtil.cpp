@@ -5,6 +5,7 @@
 #include <FsHelpers.h>
 #include <GfxRenderer.h>
 #include <HalStorage.h>
+#include <I18n.h>
 #include <Logging.h>
 
 #include <cstring>
@@ -12,6 +13,7 @@
 
 #include "Bitmap.h"  // Required for BmpHeader struct definition
 #include "activities/Activity.h"
+#include "components/UITheme.h"
 
 void ScreenshotUtil::buildFilename(const ScreenshotInfo& info, char* buf, size_t bufSize) {
   const unsigned long ts = millis();
@@ -83,18 +85,11 @@ void ScreenshotUtil::takeScreenshot(GfxRenderer& renderer) {
     LOG_DBG("SCR", "Screenshot saved to %s", filename);
   } else {
     LOG_ERR("SCR", "Failed to save screenshot");
-    return;
   }
 
-  // Display a border around the screen to indicate a screenshot was taken
+  // A short notice over the page, then the page comes back.
   if (renderer.storeBwBuffer()) {
-    int marginTop, marginRight, marginBottom, marginLeft;
-    renderer.getOrientedViewableTRBL(&marginTop, &marginRight, &marginBottom, &marginLeft);
-    int width = renderer.getScreenWidth() - marginLeft - marginRight - 1;
-    int height = renderer.getScreenHeight() - marginTop - marginBottom - 1;
-    // Add extra margin to the border to make it more visible
-    renderer.drawRect(marginLeft + 1, marginTop + 1, width - 2, height - 2, 2, true);
-    renderer.displayBuffer();
+    GUI.drawPopup(renderer, saved ? tr(STR_SCREENSHOT_SAVED) : tr(STR_SCREENSHOT_FAILED));
     delay(1000);
     renderer.restoreBwBuffer();
     renderer.displayBuffer(HalDisplay::RefreshMode::HALF_REFRESH);

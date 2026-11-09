@@ -22,13 +22,18 @@ class XtcReaderActivity final : public ReaderActivity {
   void openChapterSelection();
   void renderStatusBarOverlay(GfxRenderer& renderer, StatusBarOverlayPosition position) const;
   StatusBarInfo getStatusBarInfo() const;
-  void saveProgress() const;
+  void saveProgress();
+  void flushProgress() override;
+  int lastSavedPage = 0;
   void loadProgress();
 
   bool loadBook() override;
   std::string getBookTitle() const override { return xtc ? xtc->getTitle() : ""; }
   std::string getBookAuthor() const override { return xtc ? xtc->getAuthor() : ""; }
   std::string getBookThumbBmpPath() const override { return xtc ? xtc->getThumbBmpPath() : ""; }
+  int estimatedPagesLeft() const override {
+    return xtc ? static_cast<int>(xtc->getPageCount()) - static_cast<int>(currentPage) - 1 : -1;
+  }
   bool handleFormatInput() override;
   void renderBook() override;
   void applyInitialOrientation() override;

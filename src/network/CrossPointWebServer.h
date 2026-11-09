@@ -20,6 +20,10 @@ struct FileInfo {
 
 class CrossPointWebServer {
  public:
+  // Path of a book the phone asked to open, once.
+  bool takePendingOpen(std::string& path);
+  // Only the screen that restarts into the book turns this on.
+  void enableOpenRequests() { openRequestsEnabled = true; }
   struct WsUploadStatus {
     bool inProgress = false;
     size_t received = 0;
@@ -75,6 +79,8 @@ class CrossPointWebServer {
   uint16_t getPort() const { return port; }
 
  private:
+  std::string pendingOpenPath;
+  bool openRequestsEnabled = false;
   std::unique_ptr<WebServer> server = nullptr;
   std::unique_ptr<WebSocketsServer> wsServer = nullptr;
   bool running = false;
@@ -106,6 +112,7 @@ class CrossPointWebServer {
   void handleJszip() const;
   void handleNotFound() const;
   void handleStatus() const;
+  void handleOpenPlace();
   void handleFileList() const;
   void handleFileListData() const;
   void handleDownload() const;

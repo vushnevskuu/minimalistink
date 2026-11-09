@@ -160,6 +160,8 @@ class Section {
   // Exact zero-based visible Unicode-codepoint offset where a rendered page
   // starts. Available from both an active build and finalized/partial caches.
   std::optional<uint32_t> getVisibleTextOffsetForPage(uint16_t page) const;
+  // Page holding match number occurrence of query, ignoring case. Needs the chapter fully built.
+  std::optional<uint16_t> findTextOccurrencePage(std::string query, int occurrence);
 
   // Derive the local page containing an exact visible-text offset. When
   // preferFirstAtOffset is true, ties caused by zero-width content such as an

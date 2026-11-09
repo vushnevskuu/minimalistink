@@ -32,6 +32,7 @@ TEST(ReaderSession, AccumulatesSuccessfulForwardDwellsAndCompactsEndTime) {
 
   EXPECT_EQ(session.startTime(), 100);
   EXPECT_EQ(session.durationSeconds(), 12u);
+  EXPECT_EQ(session.pagesCounted(), 2u);
   EXPECT_EQ(session.endTime(), 112);
   EXPECT_EQ(session.endTime(), session.startTime() + session.durationSeconds());
   EXPECT_EQ(session.startProgressBp(), 1000);

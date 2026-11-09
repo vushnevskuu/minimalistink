@@ -7,6 +7,7 @@
 #include <Memory.h>
 
 #include <algorithm>
+#include <cstdlib>
 
 #include "CrossPointSettings.h"
 #include "ProgressFile.h"
@@ -67,7 +68,11 @@ void XtcReaderActivity::renderBook() {
   }
 
   renderPage();
-  saveProgress();
+  if (std::abs(static_cast<int>(currentPage) - lastSavedPage) >= ProgressFile::SAVE_EVERY_PAGES) saveProgress();
+}
+
+void XtcReaderActivity::flushProgress() {
+  if (static_cast<int>(currentPage) != lastSavedPage) saveProgress();
 }
 
 XtcReaderActivity::StatusBarInfo XtcReaderActivity::getStatusBarInfo() const {
@@ -328,7 +333,7 @@ void XtcReaderActivity::onReturnFromEndOfBook() {
   }
 }
 
-void XtcReaderActivity::saveProgress() const {
+void XtcReaderActivity::saveProgress() {
   if (!xtc) return;
   uint8_t data[4];
   data[0] = currentPage & 0xFF;
@@ -337,7 +342,9 @@ void XtcReaderActivity::saveProgress() const {
   data[3] = (currentPage >> 24) & 0xFF;
   if (!ProgressFile::writeAtomic(xtc->getCachePath(), data, sizeof(data))) {
     LOG_ERR("XTC", "Failed to save progress: page %lu", currentPage);
+    return;
   }
+  lastSavedPage = static_cast<int>(currentPage);
 }
 
 void XtcReaderActivity::loadProgress() {
@@ -353,6 +360,7 @@ void XtcReaderActivity::loadProgress() {
       LOG_DBG("XTC", "Loaded progress: page %lu/%lu", currentPage + 1, xtc->getPageCount());
     }
   }
+  lastSavedPage = static_cast<int>(currentPage);
 }
 
 ScreenshotInfo XtcReaderActivity::getScreenshotInfo() const {

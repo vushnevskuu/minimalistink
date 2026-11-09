@@ -2,8 +2,8 @@
 #include "activities/UiListActivity.h"
 
 // Clock configuration under System settings: timezone, 12/24-hour format,
-// home-header display, and manual NTP sync. Only reachable when
-// halClock.isAvailable() — SettingsActivity gates the entry.
+// home-header display, and manual NTP sync. Boards without an RTC only get
+// the timezone and DST rows.
 class ClockSettingsActivity final : public UiListActivity {
  public:
   explicit ClockSettingsActivity(GfxRenderer& renderer, MappedInputManager& mappedInput);
@@ -13,7 +13,7 @@ class ClockSettingsActivity final : public UiListActivity {
   void onEnter() override;
 
  private:
-  int listCount() const override { return ITEM_COUNT; }
+  int listCount() const override;
   void buildScreen(UiScreen& screen) override;
   void activateIndex(int index) override;
   const char* headerTitle() const override;

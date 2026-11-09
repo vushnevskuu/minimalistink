@@ -225,6 +225,32 @@ Form parameters:
 deleted. Hidden items (names that start with `.`) can be deleted. Non-empty
 folders are rejected. EPUB cache data for deleted files is cleared.
 
+## Opening a place in a book
+
+### `POST /api/open`
+
+Available only on the File Transfer screen. Asks the reader to open a place found by the phone app's
+search. The reader replies, then restarts into the book, so Wi-Fi drops right after a `200`.
+
+```json
+{"path":"/Books/x.epub","spine":3,"query":"north wind","occurrence":2}
+```
+
+- `path`: an EPUB on the card.
+- `spine`: 0-based index of the chapter file in the EPUB spine.
+- `query`: the searched text, at most 200 bytes.
+- `occurrence`: 0-based number of the match inside that spine item.
+
+Matches are counted without overlaps on normalized text: ASCII and Russian letters (А-Я, Ё) in
+lowercase, with all whitespace, Unicode spaces, `-`, soft hyphens and no-break spaces removed. Apply
+the same rule to the query. The reader counts only text it shows, so also skip `[hidden]`, `rp` and
+pagebreak elements (`epub:type="pagebreak"`, `role="doc-pagebreak"`). Text hidden by CSS cannot be
+matched from the phone and can shift the count. If the match is not found, the book opens at the
+start of that chapter.
+
+Responses: `200` on success, `400` for invalid input, `404` if the file is missing, `409` outside the
+File Transfer screen, `500` if the request could not be saved.
+
 ## Settings API
 
 ### `GET /api/settings`

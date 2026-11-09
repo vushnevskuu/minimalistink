@@ -72,6 +72,13 @@ SettingsSection sectionFor(const SettingInfo& setting) {
       setting.valuePtr == &CrossPointSettings::moveFinishedToReadFolder) {
     return SettingsSection::Library;
   }
+  if (setting.valuePtr == &CrossPointSettings::sleepScreen ||
+      setting.valuePtr == &CrossPointSettings::sleepScreenCoverMode ||
+      setting.valuePtr == &CrossPointSettings::sleepScreenCoverFilter ||
+      setting.valuePtr == &CrossPointSettings::quickResumeSleepScreen ||
+      setting.valuePtr == &CrossPointSettings::timeLeftBackground) {
+    return SettingsSection::Screensaver;
+  }
   if (setting.valuePtr == &CrossPointSettings::sleepTimeoutMinutes) return SettingsSection::Display;
   if (setting.category == StrId::STR_CAT_DISPLAY) return SettingsSection::Display;
   if (setting.category == StrId::STR_CAT_READER) return SettingsSection::Reader;
@@ -123,10 +130,8 @@ void SettingsActivity::rebuildSettings() {
     settings.push_back(std::move(setting));
   }
 
-  // Clock configuration only exists where the RTC probe found hardware.
-  if (halClock.isAvailable()) {
-    addAction(SettingsSection::General, StrId::STR_CLOCK, SettingAction::ClockSettings);
-  }
+  // Boards without an RTC still need a timezone for per-day reading stats.
+  addAction(SettingsSection::General, StrId::STR_CLOCK, SettingAction::ClockSettings);
   addAction(SettingsSection::Reader, StrId::STR_CUSTOMISE_STATUS_BAR, SettingAction::CustomiseStatusBar);
   addAction(SettingsSection::Reader, StrId::STR_CLEAR_READING_CACHE, SettingAction::ClearCache);
 

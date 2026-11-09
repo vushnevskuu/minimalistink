@@ -10,6 +10,8 @@
 
 void QrDisplayActivity::onEnter() {
   Activity::onEnter();
+  // Encoding needs more stack than the render task has.
+  QrUtils::build(textPayload, code);
   requestUpdate();
 }
 
@@ -38,7 +40,7 @@ void QrDisplayActivity::render(RenderLock&&) {
   const int startY = metrics.topPadding + metrics.headerHeight + metrics.verticalSpacing;
 
   const Rect qrBounds(20, startY, availableWidth, availableHeight);
-  QrUtils::drawQrCode(renderer, qrBounds, textPayload);
+  QrUtils::draw(renderer, qrBounds, code);
 
   const auto labels = mappedInput.mapLabels(tr(STR_BACK), "", "", "");
   GUI.drawButtonHints(renderer, labels.btn1, labels.btn2, labels.btn3, labels.btn4);

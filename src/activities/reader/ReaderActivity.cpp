@@ -14,7 +14,10 @@
 #include "CrossPointSettings.h"
 #include "CrossPointState.h"
 #include "EpubReaderActivity.h"
+#include "FinishedBooksStore.h"
 #include "ReaderUtils.h"
+#include "ReadingDays.h"
+#include "ReadingLeft.h"
 #include "RecentBooksStore.h"
 #include "SdCardFontSystem.h"
 #include "XtcReaderActivity.h"
@@ -128,7 +131,21 @@ void ReaderActivity::onExit() {
 
 void ReaderActivity::prepareForSleep() { flushReaderSession(); }
 
+// Every caller holds RenderLock. With no page drawn since the last flush there is nothing new to write.
 void ReaderActivity::flushReaderSession() {
+  if (sessionFlushed) return;
+  sessionFlushed = true;
+  flushProgress();
+  if (isAtEndOfBook()) FINISHED_BOOKS.addBook(bookPath, getBookTitle(), getBookAuthor(), getBookThumbBmpPath());
+
+  std::string excerpt;
+  if (currentPageExcerpt(excerpt)) readingleft::saveExcerpt(bookPath.c_str(), excerpt);
+
+  const bool counted = readerSession.isEmitWorthy();
+  if (counted) readingdays::add(readerSession.startTime(), readerSession.durationSeconds());
+  readingleft::record(bookPath.c_str(), isAtEndOfBook() ? 0 : estimatedPagesLeft(),
+                      counted ? readerSession.durationSeconds() : 0, counted ? readerSession.pagesCounted() : 0);
+
   if (!readerSession.isEmitWorthy() || !pluginevents::anySubscriber(pluginevents::Event::ReaderSession)) {
     readerSession.reset();
     return;
@@ -244,6 +261,7 @@ void ReaderActivity::loop() {
 }
 
 void ReaderActivity::render(RenderLock&&) {
+  sessionFlushed = false;
   if (isAtEndOfBook()) {
     if (!endOfBookOptions) {
       endOfBookOptions = makeUniqueNoThrow<EndOfBookOptions>(renderer);

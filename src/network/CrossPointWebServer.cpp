@@ -42,6 +42,7 @@
 #include "FontInstaller.h"
 #include "OpdsServerStore.h"
 #include "ProtectedPaths.h"
+#include "ReaderPlaceRequest.h"
 #include "SdCardFontSystem.h"
 #include "SettingsList.h"
 #include "WebDAVHandler.h"
@@ -321,6 +322,7 @@ class CrossPointWebServer::RouteHandler final : public RequestHandler {
          nullptr},
 
         {"/api/status", HTTP_GET, [](S& s) { s.handleStatus(); }, nullptr},
+        {"/api/open", HTTP_POST, [](S& s) { s.handleOpenPlace(); }, nullptr},
         {"/api/files", HTTP_GET, [](S& s) { s.handleFileListData(); }, nullptr},
         {"/download", HTTP_GET, [](S& s) { s.handleDownload(); }, nullptr},
         {"/upload", HTTP_POST, [](S& s) { s.handleUploadPost(s.upload); }, [](S& s) { s.handleUpload(s.upload); }},
@@ -711,6 +713,48 @@ void CrossPointWebServer::handleNotFound() const {
   String message = "404 Not Found\n\n";
   message += "URI: " + server->uri() + "\n";
   server->send(404, "text/plain", message);
+}
+
+void CrossPointWebServer::handleOpenPlace() {
+  constexpr size_t MAX_BODY_BYTES = 1024;
+  constexpr size_t MAX_QUERY_BYTES = 200;
+  const String body = server->arg("plain");
+  JsonDocument doc;
+  if (body.isEmpty() || body.length() > MAX_BODY_BYTES || deserializeJson(doc, body)) {
+    server->send(400, "text/plain", "Invalid JSON");
+    return;
+  }
+  if (!openRequestsEnabled) {
+    server->send(409, "text/plain", "Not available here");
+    return;
+  }
+  const String path = normalizeWebPath(String(doc["path"] | ""));
+  const char* query = doc["query"] | "";
+  const int spine = doc["spine"] | -1;
+  const int occurrence = doc["occurrence"] | -1;
+  const size_t queryLength = strlen(query);
+  if (path.length() < 2 || !FsHelpers::hasEpubExtension(path) || spine < 0 || occurrence < 0 || queryLength == 0 ||
+      queryLength > MAX_QUERY_BYTES) {
+    server->send(400, "text/plain", "Invalid request");
+    return;
+  }
+  if (!Storage.exists(path.c_str())) {
+    server->send(404, "text/plain", "Book not found");
+    return;
+  }
+  if (!placerequest::save(path.c_str(), spine, occurrence, query)) {
+    server->send(500, "text/plain", "Could not save");
+    return;
+  }
+  pendingOpenPath = path.c_str();
+  server->send(200, "text/plain", "OK");
+}
+
+bool CrossPointWebServer::takePendingOpen(std::string& path) {
+  if (pendingOpenPath.empty()) return false;
+  path = std::move(pendingOpenPath);
+  pendingOpenPath.clear();
+  return true;
 }
 
 void CrossPointWebServer::handleStatus() const {

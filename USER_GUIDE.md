@@ -23,6 +23,7 @@ Welcome to the **CrossPoint** firmware. This guide outlines the hardware control
       - [Removing a Book](#removing-a-book)
     - [3.6 Settings](#36-settings)
       - [3.6.1 Display](#361-display)
+      - [Screensaver](#screensaver)
       - [3.6.2 Reader](#362-reader)
       - [3.6.3 Controls](#363-controls)
       - [3.6.4 System](#364-system)
@@ -68,9 +69,9 @@ Button layout can be customized in the **[Controls Settings](#363-controls)**.
 
 ### Taking a Screenshot
 
-When the Power button and the lower side button (Side Down) are pressed at the same time, it will take a screenshot and save it in the folder `screenshots/`.
+On devices without a touchscreen, press **Side Up** and **Side Down** at the same time; on touch devices, press **Power** and **Side Down**. It will take a screenshot and save it in the folder `screenshots/`.
 
-Alternatively, while reading a book, press the **Confirm** button to open the reader menu and select **Take screenshot**.
+A short notice confirms that the screenshot was saved.
 
 ### Control Center and Frontlight
 
@@ -110,6 +111,12 @@ Upon turning the device on for the first time, you will be placed on the **[Home
 ### 3.1 Home Screen
 
 The Home screen is the main entry point to the firmware. From here you can navigate to **[Reading Mode](#4-reading-mode)** with the most recently read book, **[Browse Files](#33-browse-files-screen)**, the **[Library](#34-library-screen)**, **[File Transfer](#35-file-transfer-screen)**, or **[Settings](#36-settings)**.
+
+On the X4 the default Home is three full screens. **Side Down** and **Side Up** move between them. The first shows the book in progress with the text where you stopped, and **Confirm** continues reading with a short slide. The second shows the shelves arranged in the book uploader web app on your phone (`/book-uploader/shelf.json`): **Back** switches shelves, **Left** and **Right** choose a book and **Confirm** opens it. A book whose file is gone is marked Missing and does not open. The last shelf, All books, lists the books in the Library (see 3.4). The page opens on the first shelf that has books, or on All books if none do. Until you open a book there is no first screen, so Home starts on the shelves. With no books on the card, Home shows only the screen with Files, Transfer and Settings. If the shelf file is absent or invalid, the built-in Finished and Not read shelves are shown empty. The third shows the year's reading by month, with hours for each finished month, and its bottom buttons open Files, File Transfer and Settings directly, plus Plugins or OPDS when they are set up.
+
+Set **Home Style** in **Settings → Display** to **Dashboard** to keep everything on one screen: the year and total hours, a strip marking the days you read, the current book, the four latest finished books and the menu tiles. The **Home Layout** web setting orders and hides those blocks. It is a comma-separated list, top to bottom, of `calendar`, `current`, `finished` and `menu`. A block left out is hidden, an empty value is the default order, and the menu is always shown.
+
+Reading statistics need the date: connect to Wi-Fi once and set your zone in **Settings → System → Clock**.
 
 ### 3.2 Reading Mode
 
@@ -206,33 +213,9 @@ Books cannot be removed from your device through Calibre. Use the web interface 
 
 ### 3.6 Settings
 
-Settings are grouped into **System**, **Display**, **Reader**, **Controls**, **Library**, and **Connectivity**. System contains language, keyboard layouts, hidden-file visibility, Clock (where available), firmware updates, and About. Library contains Use Book Metadata, Clear Read Books from Recent List, and Move Finished Books to Read Folder. Time to Sleep is under Display; Clear Reading Cache is under Reader. Connectivity contains Wi-Fi, Bluetooth Page Turner, CrossPoint Sync, OPDS, and the Plugins toggle. The options below describe these settings.
+Settings are grouped into **System**, **Display**, **Screensaver**, **Reader**, **Controls**, **Library**, and **Connectivity**. System contains language, keyboard layouts, hidden-file visibility, Clock, firmware updates, and About. Library contains Use Book Metadata, Clear Read Books from Recent List, and Move Finished Books to Read Folder. Time to Sleep is under Display; Clear Reading Cache is under Reader. Connectivity contains Wi-Fi, Bluetooth Page Turner, CrossPoint Sync, OPDS, and the Plugins toggle. The options below describe these settings.
 
 #### 3.6.1 Display
-
-- **Sleep Screen**: Which sleep screen to display when the device sleeps:
-  
-  - "Dark" (default) - The default dark Crosspoint logo sleep screen
-  - "Light" - The same default sleep screen, on a white background
-  - "Custom" - Custom images from the SD card; see [Sleep Screen](#37-sleep-screen) below for more information
-  - "Cover" - The book cover image
-  - "None" - A blank screen
-  - "Cover + Custom" - The book cover image while actively reading, falls back to "Custom" behavior otherwise
-  - "Quick resume" - The text of the last page read will be displayed on the sleep screen and a moon icon is shown on the edge of the screen. Waking up the device will return to the same page of the opened book. This is useful for quickly resuming reading without waiting for the device to fully wake up and load the book.
-  - "Transparent" - A transparent overlay image drawn over the current screen; see [Sleep Screen](#37-sleep-screen) below for more information
-  - "Cover + Transparent" - The transparent overlay image drawn over the cover of the last opened book, falls back to "Transparent" behavior if there is no book cover
-- **Sleep Screen Cover Mode**: How to display the book cover or custom sleep image:
-  
-  - "Fit" (default) - Scale the image to fit centered on the screen, padding with white borders as necessary
-  - "Crop" - Scale the image and crop as necessary to try to fill the screen
-
-- **Sleep Screen Cover Filter**: What filter will be applied to the book cover when "Cover" sleep screen is selected:
-  
-  - "None" (default) - The cover image will be converted to a grayscale image and displayed as it is
-  - "Contrast" - The image will be displayed as a black & white image without grayscale conversion
-  - "Inverted" - The image will be inverted as in white & black and will be displayed without grayscale conversion
-
-- **Quick Resume on Timeout**: Whether to enable the "Quick Resume" sleep screen when the device goes to sleep due to inactivity (Display > Time to Sleep). This is useful for quickly resuming reading without waiting for the device to fully wake up and load the book. This overwrites the Sleep Screen Cover Mode when enabled.
 
 - **Status Bar**: Configure the status bar displayed while reading:
   
@@ -251,17 +234,49 @@ Settings are grouped into **System**, **Display**, **Reader**, **Controls**, **L
 
 - **Refresh Frequency**: Set how often the screen does a full refresh while reading to reduce ghosting; options are every 1, 5, 10, 15, or 30 pages.
 
+- **Home Style**: How the Home screen is laid out on the X4: "Screens" (default) or "Dashboard". See [Home Screen](#31-home-screen).
 - **UI Theme**: Set which UI theme to use:
   
   - "Classic" - The original Crosspoint theme
   - "Lyra" - The new theme for Crosspoint featuring rounded elements and menu icons
-  - "Lyra Extended" - Lyra, but displays 3 books instead of 1 on the **[Home Screen](#31-home-screen)**
+  - "Lyra Extended" - Lyra, but displays 3 books instead of 1 on the **[Home Screen](#31-home-screen)** (not on the X4 dashboard)
   - "RoundedRaff" - A rounded theme with additional visual styling
 
 - **Sunlight Fading Fix**: Configure whether to enable a software-fix for the issue where white X4 models may fade when used in direct sunlight:
   
   - "OFF" (default) - Disable the fix
   - "ON" - Enable the fix
+
+#### Screensaver
+
+- **Sleep Screen**: Which sleep screen to display when the device sleeps:
+  
+  - "Dark" (default) - The default dark Crosspoint logo sleep screen
+  - "Light" - The same default sleep screen, on a white background
+  - "Custom" - Custom images from the SD card; see [Sleep Screen](#37-sleep-screen) below for more information
+  - "Cover" - The book cover image
+  - "None" - A blank screen
+  - "Cover + Custom" - The book cover image while actively reading, falls back to "Custom" behavior otherwise
+  - "Quick resume" - The text of the last page read will be displayed on the sleep screen and a moon icon is shown on the edge of the screen. Waking up the device will return to the same page of the opened book. This is useful for quickly resuming reading without waiting for the device to fully wake up and load the book.
+  - "Transparent" - A transparent overlay image drawn over the current screen; see [Sleep Screen](#37-sleep-screen) below for more information
+  - "Cover + Transparent" - The transparent overlay image drawn over the cover of the last opened book, falls back to "Transparent" behavior if there is no book cover
+  - "Reading Map" - A poster of the current year with one mark per day and total hours, falls back to "Dark" until the device has connected to Wi-Fi once
+  - "Time Left" - The approximate hours and pages left in the last opened book with a small cover, falls back to "Dark" when the book has not been read yet or is finished
+  - "Battery Level" - The screen filled from the bottom up to the battery level, with no text
+- **Sleep Screen Cover Mode**: How to display the book cover or custom sleep image:
+  
+  - "Fit" (default) - Scale the image to fit centered on the screen, padding with white borders as necessary
+  - "Crop" - Scale the image and crop as necessary to try to fill the screen
+
+- **Sleep Screen Cover Filter**: What filter will be applied to the book cover when "Cover" sleep screen is selected:
+  
+  - "None" (default) - The cover image will be converted to a grayscale image and displayed as it is
+  - "Contrast" - The image will be displayed as a black & white image without grayscale conversion
+  - "Inverted" - The image will be inverted as in white & black and will be displayed without grayscale conversion
+
+- **Quick Resume on Timeout**: Whether to enable the "Quick Resume" sleep screen when the device goes to sleep due to inactivity (Display > Time to Sleep). This is useful for quickly resuming reading without waiting for the device to fully wake up and load the book. This overwrites the Sleep Screen Cover Mode when enabled.
+
+- **Time Left Background**: The background of the "Time Left" sleep screen: "Dark" (default) or "Light".
 
 #### 3.6.2 Reader
 
@@ -549,7 +564,7 @@ If you use the HTTPS listener, use `https://<server-ip>:7200` (`curl -k` only fo
 
 ##### Syncing While Reading
 
-Once any of the options above is set up, press **Confirm** while reading to open the reader menu, then select **Sync Progress**. Alternatively, set **Settings -> Controls -> Long-press Menu** to **CrossPoint Sync** and hold Confirm to launch sync directly.
+Once any of the options above is set up, press **Confirm** while reading to open the reader menu, then select **Sync Progress** (on devices without a touchscreen, only in the Toolbar menu style). Alternatively, set **Settings -> Controls -> Long-press Menu** to **CrossPoint Sync** and hold Confirm to launch sync directly.
 
 - **Sync Clippings** is off by default. Enable it only for a compatible CrossPoint Sync server; manual **Sync Progress** then uploads and downloads this book’s clippings too. Leave it off for ordinary KOSync servers.
 - With **Sync Behavior** set to **Ask every time**, choose **Apply Remote** to jump to remote progress or **Upload Local** to push current progress.
@@ -568,6 +583,9 @@ The **Sleep Screen** setting controls what is displayed when the device goes to 
 | **Cover + Custom** | The cover of the currently open book, shown only while actively reading. Falls back to **Custom** behavior when not reading. |
 | **Transparent**    | A BMP or PNG overlay drawn over the current screen. Supports PNG and 32-bit BGRA alpha transparency, and treats white as transparent in regular BMPs. Falls back to **Dark** if no valid overlay image is found. |
 | **Cover + Transparent** | The **Transparent** overlay drawn over the cover of the last opened book, from any screen. Falls back to **Transparent** behavior if there is no book cover, and to the plain cover if no valid overlay image is found. |
+| **Reading Map**    | A poster of the current year on a dark background: one mark per day, brighter for longer reading, with total hours. Connect to Wi-Fi once to set the clock and set your zone in **Settings → System → Clock**. Until the first connection this falls back to **Dark** and reading is not counted. On devices without a clock battery, a full power loss keeps the last known date until the next Wi-Fi connection. |
+| **Time Left**      | Large estimate of the hours left in the last opened book, the approximate pages left and a small cover. Falls back to **Dark** when the book has not been read yet or is finished. Choose a dark or light background in **Settings → Screensaver**. |
+| **Battery Level**  | The screen filled black from the bottom up to the battery level when the device went to sleep, with no text. |
 | **None**           | A blank screen.                                                                                                              |
 
 #### Cover settings
@@ -654,7 +672,7 @@ This feature can be disabled in the **[Controls Settings](#363-controls)** to he
 
 ### Auto Page Turn
 
-Auto Page Turn automatically advances pages at a set interval, useful for hands-free reading. This feature can be enabled and configured from the **[Reader Menu](#5-reader-menu)** while reading an EPUB.
+Auto Page Turn automatically advances pages at a set interval, useful for hands-free reading. On devices without a touchscreen it needs the Toolbar menu style. This feature can be enabled and configured from the **[Reader Menu](#5-reader-menu)** while reading an EPUB.
 
 ### Tilt Page Turn (X3 only)
 
@@ -692,6 +710,8 @@ The UI includes Arabic and Hebrew (menus use built-in fonts with presentation-fo
 ---
 
 ## 5. Reader Menu
+
+On devices with buttons only, the menu is one screen: two icons for portrait and landscape, a chapter list that opens in place, a font list, font size buttons, and a QR code of the current page. Footnotes, Lookup, Frontlight and Bluetooth appear below them only when they apply. The other text settings are in **Settings -> Reader** and in the book uploader web app on your phone, which also has word search. Picking a search result there closes File Transfer and opens that place in the book. The rest of this section, including bookmarks and clippings, describes the menu on touch devices and the Toolbar menu style (**Settings -> Reader -> Reader Menu Style**).
 
 Press **Confirm** while reading to open the Reader Menu. From here you can access reading utilities and navigation options without leaving the book.
 

@@ -6,12 +6,22 @@
 #include "RecentBooksStore.h"
 #include "activities/Activity.h"
 #include "components/CoverGridHomeUi.h"
+#include "components/HomeDashboard.h"
 #include "util/ButtonNavigator.h"
 
 struct Rect;
 
 class HomeActivity final : public Activity {
   std::unique_ptr<CoverGridHomeUi> coverGridUi;
+  bool dashboard = false;
+  std::vector<RecentBook> finishedBooks;
+  int currentProgress = -1;
+  HomeBlock homeBlocks[HOME_BLOCK_COUNT] = {};
+  int homeBlockCount = 0;
+  // Selector indices in on-screen order, so Up/Down follow the layout.
+  int navOrder[HOME_MAX_MENU_ITEMS + 1] = {};
+  int navCount = 0;
+  int navPosition = 0;
   ButtonNavigator buttonNavigator;
   int selectorIndex = 0;
   bool recentsLoading = false;
@@ -77,6 +87,9 @@ class HomeActivity final : public Activity {
   void freeCoverBuffer();     // Free the stored cover buffer
   void loadRecentBooks(int maxBooks);
   void loadRecentCovers(int coverHeight);
+  void loadDashboardCovers();
+  void renderDashboard();
+  void moveDashboardSelection(int delta);
   void fillCoverGridFromLibrary();
   void resolveGridCoverPaths();
   void loadGridCover(RecentBook& book, int height, bool& showingLoading, Rect& popupRect);

@@ -9,27 +9,34 @@
 #include <GfxRenderer.h>
 #include <HalDisplay.h>
 #include <HalGPIO.h>
+#include <HalPowerManager.h>
 #include <HalStorage.h>
 #include <I18n.h>
 #include <Memory.h>
 #include <PNGdec.h>
+#include <TrustedTime.h>
 #include <Xtc.h>
 
 #include <algorithm>
 #include <cmath>
 #include <cstdint>
 #include <cstring>
+#include <ctime>
 #include <functional>
 #include <limits>
 #include <string>
 
 #include "CrossPointSettings.h"
 #include "CrossPointState.h"
+#include "ReadingDays.h"
+#include "ReadingLeft.h"
 #include "activities/reader/ReaderUtils.h"
+#include "components/ReadingMapDraw.h"
 #include "components/UITheme.h"
 #include "fontIds.h"
 #include "images/Logo120.h"
 #include "images/MoonIcon.h"
+#include "images/TimeLeftGlyphs.h"
 
 namespace {
 // Metalio: B/W sleep images use the full 0xF7 waveform instead of HALF (two
@@ -70,6 +77,98 @@ constexpr char TRANSPARENT_SLEEP_DIR[] = "/.sleep-overlay";
 constexpr char TRANSPARENT_SLEEP_LEGACY_DIR[] = "/sleep-overlay";
 constexpr size_t MAX_SLEEP_FILE_NAME_LEN = 256;
 constexpr uint8_t MIN_VISIBLE_ALPHA = 8;
+
+// Reading map poster: three-week rows, so weekdays stay in the same columns.
+constexpr int MAP_COLUMNS = 21;
+constexpr int MAP_ROWS = 18;
+constexpr int MAP_MARGIN = 30;
+constexpr int DIGIT_WIDTH = 5;
+constexpr int DIGIT_HEIGHT = 7;
+
+// 5x7 digits, drawn with the same square marks as the map.
+constexpr uint8_t MAP_DIGITS[10][DIGIT_HEIGHT] = {
+    {0x0E, 0x11, 0x13, 0x15, 0x19, 0x11, 0x0E}, {0x04, 0x0C, 0x04, 0x04, 0x04, 0x04, 0x0E},
+    {0x0E, 0x11, 0x01, 0x02, 0x04, 0x08, 0x1F}, {0x1F, 0x02, 0x04, 0x02, 0x01, 0x11, 0x0E},
+    {0x02, 0x06, 0x0A, 0x12, 0x1F, 0x02, 0x02}, {0x1F, 0x10, 0x1E, 0x01, 0x01, 0x11, 0x0E},
+    {0x06, 0x08, 0x10, 0x1E, 0x11, 0x11, 0x0E}, {0x1F, 0x01, 0x02, 0x04, 0x08, 0x08, 0x08},
+    {0x0E, 0x11, 0x11, 0x0E, 0x11, 0x11, 0x0E}, {0x0E, 0x11, 0x11, 0x0F, 0x01, 0x02, 0x0C}};
+
+// Returns the x just past the last digit.
+int drawMapNumber(const GfxRenderer& renderer, int x, const int y, const uint32_t value, const int pitch) {
+  char digits[11];
+  snprintf(digits, sizeof(digits), "%lu", static_cast<unsigned long>(value));
+  for (const char* digit = digits; *digit != '\0'; digit++) {
+    for (int row = 0; row < DIGIT_HEIGHT; row++) {
+      for (int col = 0; col < DIGIT_WIDTH; col++) {
+        if ((MAP_DIGITS[*digit - '0'][row] >> (DIGIT_WIDTH - 1 - col)) & 1) {
+          renderer.fillRect(x + col * pitch, y + row * pitch, pitch - 2, pitch - 2);
+        }
+      }
+    }
+    x += (DIGIT_WIDTH + 1) * pitch;
+  }
+  return x - pitch;
+}
+
+struct ReadingMapContext {
+  const GfxRenderer& renderer;
+  int today;
+  int firstOffset;
+  int left;
+  int mapTop;
+  int pitch;
+  int cell;
+  uint32_t totalSeconds;
+};
+
+constexpr int TIME_LEFT_MARGIN = 30;
+constexpr int TIME_LEFT_GAP = 48;
+constexpr int TIME_LEFT_UNIT_GAP = 12;
+constexpr int TIME_LEFT_COVER_HEIGHT = 174;
+#ifdef OMIT_FONTS
+constexpr int TIME_LEFT_PAGES_FONT = UI_12_FONT_ID;
+#else
+constexpr int TIME_LEFT_PAGES_FONT = NOTOSANS_18_FONT_ID;
+#endif
+
+const TimeLeftGlyph& timeLeftGlyph(const char c) { return c == '<' ? kLessGlyph : TIME_LEFT_DIGITS[c - '0']; }
+
+// Nearest neighbour, so estimates of 100 hours and more still fit the width.
+void drawTimeLeftGlyph(const GfxRenderer& renderer, const TimeLeftGlyph& glyph, const int x, const int baseline,
+                       const int scaleNum, const int scaleDen, const bool ink) {
+  const int rowBytes = (glyph.width + 7) / 8;
+  const int width = glyph.width * scaleNum / scaleDen;
+  const int height = glyph.height * scaleNum / scaleDen;
+  const int left = x + glyph.left * scaleNum / scaleDen;
+  const int top = baseline - glyph.top * scaleNum / scaleDen;
+  for (int dy = 0; dy < height; dy++) {
+    const uint8_t* row = glyph.bits + (dy * scaleDen / scaleNum) * rowBytes;
+    for (int dx = 0; dx < width; dx++) {
+      const int sx = dx * scaleDen / scaleNum;
+      if (row[sx / 8] & (0x80 >> (sx % 8))) renderer.drawPixel(left + dx, top + dy, ink);
+    }
+  }
+}
+
+void drawMapDot(const GfxRenderer& renderer, const int x, const int y, const int cell, const int size) {
+  renderer.fillRect(x + (cell - size) / 2, y + (cell - size) / 2, size, size);
+}
+
+void drawReadingMapDay(void* contextPtr, const int day, const uint16_t seconds) {
+  auto& c = *static_cast<ReadingMapContext*>(contextPtr);
+  c.totalSeconds += seconds;
+  const int position = day + c.firstOffset;
+  const int x = c.left + (position % MAP_COLUMNS) * c.pitch;
+  const int y = c.mapTop + (position / MAP_COLUMNS) * c.pitch;
+  if (day > c.today) {
+    drawMapDot(c.renderer, x, y, c.cell, 2);
+  } else if (seconds == 0) {
+    drawMapDot(c.renderer, x, y, c.cell, 4);
+  } else {
+    drawReadingMapCell(c.renderer, x, y, c.cell, readingMapLevel(seconds));
+  }
+  if (day == c.today) c.renderer.drawRect(x - 2, y - 2, c.cell + 4, c.cell + 4);
+}
 
 struct BitmapPlacement {
   int x = 0;
@@ -739,6 +838,12 @@ void SleepActivity::onEnter() {
   switch (SETTINGS.sleepScreen) {
     case (CrossPointSettings::SLEEP_SCREEN_MODE::BLANK):
       return renderBlankSleepScreen();
+    case (CrossPointSettings::SLEEP_SCREEN_MODE::READING_MAP):
+      return renderReadingMapSleepScreen();
+    case (CrossPointSettings::SLEEP_SCREEN_MODE::TIME_LEFT):
+      return renderTimeLeftSleepScreen();
+    case (CrossPointSettings::SLEEP_SCREEN_MODE::BATTERY_FILL):
+      return renderBatteryFillSleepScreen();
     case (CrossPointSettings::SLEEP_SCREEN_MODE::CUSTOM):
       return renderCustomSleepScreen();
     case (CrossPointSettings::SLEEP_SCREEN_MODE::COVER):
@@ -1110,6 +1215,142 @@ void SleepActivity::renderLastScreenSleepScreen() const {
   } else {
     renderer.displayBuffer(HalDisplay::FAST_REFRESH);
   }
+}
+
+void SleepActivity::renderReadingMapSleepScreen() const {
+  const int64_t now = trustedtime::trustedNow();
+  if (now == 0) return renderDefaultSleepScreen();
+
+  const time_t nowTime = static_cast<time_t>(now);
+  struct tm today{};
+  localtime_r(&nowTime, &today);
+  const int year = today.tm_year + 1900;
+  const bool leap = (year % 4 == 0 && year % 100 != 0) || year % 400 == 0;
+  const int daysInYear = leap ? 366 : 365;
+  // Monday-based weekday of January 1.
+  const int firstOffset = ((today.tm_wday - today.tm_yday) % 7 + 13) % 7;
+
+  const int pageWidth = renderer.getScreenWidth();
+  const int pageHeight = renderer.getScreenHeight();
+  int pitch = (pageWidth - 2 * MAP_MARGIN) / MAP_COLUMNS;
+  int digitPitch = pitch * 3 / 5;
+  int gap = pitch * 9 / 5;
+  while (2 * DIGIT_HEIGHT * digitPitch + 2 * gap + MAP_ROWS * pitch > pageHeight - 2 * MAP_MARGIN) {
+    pitch--;
+    digitPitch = pitch * 3 / 5;
+    gap = pitch * 9 / 5;
+  }
+  const int cell = pitch - 4;
+  const int left = (pageWidth - (MAP_COLUMNS * pitch - 4)) / 2;
+  const int blockHeight = 2 * DIGIT_HEIGHT * digitPitch + 2 * gap + MAP_ROWS * pitch;
+  const int yearTop = (pageHeight - blockHeight) / 2;
+  const int mapTop = yearTop + DIGIT_HEIGHT * digitPitch + gap;
+  const int hoursTop = mapTop + MAP_ROWS * pitch + gap;
+
+  renderer.clearScreen();
+  drawMapNumber(renderer, left, yearTop, static_cast<uint32_t>(year), digitPitch);
+
+  ReadingMapContext context{renderer, today.tm_yday, firstOffset, left, mapTop, pitch, cell, 0};
+  readingdays::forEachDay(year, daysInYear, drawReadingMapDay, &context);
+
+  const int hoursEnd = drawMapNumber(renderer, left, hoursTop, context.totalSeconds / 3600, digitPitch);
+  const int digitsBottom = hoursTop + DIGIT_HEIGHT * digitPitch;
+  const int labelWidth = renderer.getTextWidth(UI_12_FONT_ID, tr(STR_HOURS_THIS_YEAR), EpdFontFamily::BOLD);
+  const int lineHeight = renderer.getLineHeight(UI_12_FONT_ID);
+  const bool fitsBeside = hoursEnd + digitPitch + labelWidth <= pageWidth - left;
+  renderer.drawText(UI_12_FONT_ID, fitsBeside ? hoursEnd + digitPitch : left,
+                    fitsBeside ? digitsBottom - lineHeight : digitsBottom + digitPitch, tr(STR_HOURS_THIS_YEAR), true,
+                    EpdFontFamily::BOLD);
+
+  renderer.invertScreen();
+  renderer.displayBuffer(kSleepClean);
+}
+
+std::string SleepActivity::prepareTimeLeftCover(const std::string& bookPath) const {
+  if (FsHelpers::hasXtcExtension(bookPath)) {
+    Xtc book(bookPath, "/.crosspoint");
+    if (book.load() && book.generateThumbBmp(TIME_LEFT_COVER_HEIGHT))
+      return book.getThumbBmpPath(TIME_LEFT_COVER_HEIGHT);
+  } else if (FsHelpers::hasReflowableBookExtension(bookPath)) {
+    Epub book(bookPath, "/.crosspoint");
+    if (book.load(true, true) && book.generateThumbBmp(TIME_LEFT_COVER_HEIGHT)) {
+      return book.getThumbBmpPath(TIME_LEFT_COVER_HEIGHT);
+    }
+  }
+  return "";
+}
+
+void SleepActivity::renderTimeLeftSleepScreen() const {
+  readingleft::Estimate estimate{};
+  if (APP_STATE.openEpubPath.empty() || !readingleft::estimate(APP_STATE.openEpubPath.c_str(), estimate)) {
+    return renderDefaultSleepScreen();
+  }
+
+  const std::string coverPath = prepareTimeLeftCover(APP_STATE.openEpubPath);
+  HalFile coverFile;
+  const bool coverOpened = !coverPath.empty() && Storage.openFileForRead("SLP", coverPath, coverFile);
+  Bitmap cover(coverFile);
+  const bool hasCover = coverOpened && cover.parseHeaders() == BmpReaderError::Ok;
+
+  char hours[8];
+  if (estimate.secondsLeft < 3600) {
+    snprintf(hours, sizeof(hours), "<1");
+  } else {
+    snprintf(hours, sizeof(hours), "%lu",
+             static_cast<unsigned long>(std::min<uint32_t>((estimate.secondsLeft + 1800) / 3600, 999)));
+  }
+  const TimeLeftGlyph& unit = I18N.getLanguage() == Language::RU ? kUnitChGlyph : kUnitHGlyph;
+
+  const int pageWidth = renderer.getScreenWidth();
+  const int pageHeight = renderer.getScreenHeight();
+  int numberWidth = TIME_LEFT_UNIT_GAP + unit.advance;
+  for (const char* c = hours; *c != '\0'; c++) numberWidth += timeLeftGlyph(*c).advance;
+  const int available = pageWidth - 2 * TIME_LEFT_MARGIN;
+  const int scaleNum = std::min(available, numberWidth);
+  const int scaleDen = numberWidth;
+
+  char pages[32];
+  snprintf(pages, sizeof(pages), "%lu %s", static_cast<unsigned long>(estimate.pagesLeft),
+           estimate.pagesLeft == 1 ? tr(STR_PAGE_SHORT) : tr(STR_PAGES_SHORT));
+  const int pagesHeight = renderer.getLineHeight(TIME_LEFT_PAGES_FONT);
+  const int numberHeight = TIME_LEFT_DIGITS[0].top * scaleNum / scaleDen;
+  const int coverHeight = hasCover ? cover.getHeight() : 0;
+  const int blockHeight = numberHeight + TIME_LEFT_GAP + pagesHeight + (hasCover ? TIME_LEFT_GAP + coverHeight : 0);
+  const int baseline = (pageHeight - blockHeight) / 2 + numberHeight;
+
+  const bool dark = SETTINGS.timeLeftBackground == 0;
+  renderer.clearScreen(dark ? 0x00 : 0xFF);
+  int x = (pageWidth - numberWidth * scaleNum / scaleDen) / 2;
+  for (const char* c = hours; *c != '\0'; c++) {
+    const TimeLeftGlyph& glyph = timeLeftGlyph(*c);
+    drawTimeLeftGlyph(renderer, glyph, x, baseline, scaleNum, scaleDen, !dark);
+    x += glyph.advance * scaleNum / scaleDen;
+  }
+  drawTimeLeftGlyph(renderer, unit, x + TIME_LEFT_UNIT_GAP * scaleNum / scaleDen, baseline, scaleNum, scaleDen, !dark);
+
+  const int pagesTop = baseline + TIME_LEFT_GAP;
+  renderer.drawCenteredText(TIME_LEFT_PAGES_FONT, pagesTop, pages, !dark, EpdFontFamily::BOLD);
+
+  if (hasCover) {
+    const int coverX = (pageWidth - cover.getWidth()) / 2;
+    const int coverY = pagesTop + pagesHeight + TIME_LEFT_GAP;
+    renderer.fillRect(coverX, coverY, cover.getWidth(), cover.getHeight(), false);
+    renderer.drawBitmap(cover, coverX, coverY, cover.getWidth(), cover.getHeight());
+    renderer.drawRect(coverX - 1, coverY - 1, cover.getWidth() + 2, cover.getHeight() + 2, !dark);
+  }
+
+  renderer.displayBuffer(kSleepClean);
+}
+
+void SleepActivity::renderBatteryFillSleepScreen() const {
+  const int pageWidth = renderer.getScreenWidth();
+  const int pageHeight = renderer.getScreenHeight();
+  const int level = std::min<int>(powerManager.getBatteryPercentage(), 100);
+  const int fillHeight = pageHeight * level / 100;
+
+  renderer.clearScreen();
+  renderer.fillRect(0, pageHeight - fillHeight, pageWidth, fillHeight);
+  renderer.displayBuffer(kSleepClean);
 }
 
 void SleepActivity::renderBlankSleepScreen() const {

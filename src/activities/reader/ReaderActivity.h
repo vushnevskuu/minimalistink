@@ -46,6 +46,11 @@ class ReaderActivity : public Activity {
   // EpubReaderActivity overrides getProgressBasisPoints() and falls back to it.
   int getProgressPercent() const { return getScreenshotInfo().progressPercent; }
   virtual int getProgressBasisPoints() const { return getProgressPercent() * 100; }
+  // Negative when the format or current state cannot tell.
+  virtual int estimatedPagesLeft() const { return -1; }
+  // False when the page cannot be read right now, so a stored excerpt is kept.
+  virtual bool currentPageExcerpt(std::string&) const { return false; }
+  virtual void flushProgress() {}
 
   virtual bool handleFormatInput() { return false; }
   virtual bool pageTurn(bool isForward) = 0;
@@ -70,6 +75,7 @@ class ReaderActivity : public Activity {
   void disableFastInitialRefresh();
   void notePageTurn(bool forward, bool succeeded);
   void flushReaderSession();
+  bool sessionFlushed = false;
 
  public:
   ~ReaderActivity() override = default;

@@ -32,6 +32,7 @@
 
 #include "CrossPointSettings.h"
 #include "CrossPointState.h"
+#include "FinishedBooksStore.h"
 #include "KOReaderCredentialStore.h"
 #include "LcpPassphraseStore.h"
 #include "MappedInputManager.h"
@@ -318,7 +319,10 @@ bool deliver(const bleturner::Action action) {
 
 bool yieldForRadio() { return true; }        // the reader keeps no parser alive between pages
 bool fileTransferActive() { return false; }  // file transfer is a screen of its own: the radio is off there
-void restartIntoBook() { silentRestartToReader(); }
+void restartIntoBook() {
+  activityManager.prepareForSleep();  // keeps the reading place, which the restart would lose
+  silentRestartToReader();
+}
 
 // The radio needs a steady clock while it is up or changing state.
 void holdFullSpeed(const bool hold) {
@@ -665,6 +669,7 @@ void setup() {
   // UTC-offset setting on first boot after the update).
   timezones::applyToClock();
   RECENT_BOOKS.loadFromFile();
+  FINISHED_BOOKS.loadFromFile();
   I18N.setLanguage(static_cast<Language>(SETTINGS.language));
   KOREADER_STORE.loadFromFile();
   OPDS_STORE.loadFromFile();
@@ -946,7 +951,8 @@ void loop() {
 
   static bool screenshotButtonsReleased = true;
   static bool screenshotComboActive = false;
-  if (gpio.isPressed(HalGPIO::BTN_POWER) && gpio.isPressed(HalGPIO::BTN_DOWN)) {
+  const uint8_t screenshotFirstButton = BoardConfig::hasTouch() ? HalGPIO::BTN_POWER : HalGPIO::BTN_UP;
+  if (gpio.isPressed(screenshotFirstButton) && gpio.isPressed(HalGPIO::BTN_DOWN)) {
     screenshotComboActive = true;
     if (screenshotButtonsReleased) {
       screenshotButtonsReleased = false;
@@ -958,10 +964,9 @@ void loop() {
     return;
   }
   if (screenshotComboActive) {
-    if (gpio.isPressed(HalGPIO::BTN_POWER)) return;
-    if (gpio.wasReleased(HalGPIO::BTN_POWER)) {
-      screenshotButtonsReleased = true;
-      screenshotComboActive = false;
+    // Swallow both releases so neither button turns a page.
+    if (gpio.isPressed(screenshotFirstButton) || gpio.isPressed(HalGPIO::BTN_DOWN) ||
+        gpio.wasReleased(screenshotFirstButton) || gpio.wasReleased(HalGPIO::BTN_DOWN)) {
       return;
     }
     screenshotButtonsReleased = true;

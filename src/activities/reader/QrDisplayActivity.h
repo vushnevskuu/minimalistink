@@ -4,8 +4,11 @@
 #include <string>
 
 #include "activities/Activity.h"
+#include "util/QrUtils.h"
 
 class QrDisplayActivity final : public Activity {
+  QrUtils::Code code;
+
  public:
   explicit QrDisplayActivity(GfxRenderer& renderer, MappedInputManager& mappedInput, const std::string& textPayload)
       : Activity("QrDisplay", renderer, mappedInput), textPayload(textPayload) {}

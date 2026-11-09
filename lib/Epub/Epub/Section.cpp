@@ -945,6 +945,74 @@ std::string Section::getTextFromSectionFile() {
   return fullText;
 }
 
+namespace {
+// Search text: lowercase ASCII and Cyrillic, without spaces or hyphens. The page stores words split at
+// hyphens and line breaks, so only this form compares reliably. The phone app applies the same rule.
+void normalizeForSearch(std::string& text) {
+  size_t out = 0;
+  for (size_t i = 0; i < text.size(); i++) {
+    auto byte = static_cast<uint8_t>(text[i]);
+    if (byte == ' ' || byte == '\t' || byte == '\n' || byte == '\r' || byte == '-') continue;
+    const uint8_t next = i + 1 < text.size() ? static_cast<uint8_t>(text[i + 1]) : 0;
+    if (byte == 0xC2 && (next == 0xAD || next == 0xA0)) {  // soft hyphen, no-break space
+      i++;
+      continue;
+    }
+    if (byte == 0xE2 || byte == 0xE3) {  // the wide Unicode spaces
+      const uint8_t last = i + 2 < text.size() ? static_cast<uint8_t>(text[i + 2]) : 0;
+      if ((byte == 0xE2 && next == 0x80 && ((last >= 0x80 && last <= 0x8A) || last == 0xA8 || last == 0xA9)) ||
+          (byte == 0xE2 && next == 0x81 && last == 0x9F) || (byte == 0xE3 && next == 0x80 && last == 0x80)) {
+        i += 2;
+        continue;
+      }
+    }
+    if (byte >= 'A' && byte <= 'Z') byte += 32;
+    if (byte == 0xD0 && (next == 0x81 || (next >= 0x90 && next <= 0xAF))) {  // Cyrillic capitals
+      const bool yo = next == 0x81;
+      const bool secondHalf = next >= 0xA0;
+      text[out++] = static_cast<char>(yo || secondHalf ? 0xD1 : 0xD0);
+      text[out++] = static_cast<char>(yo ? 0x91 : secondHalf ? next - 0x20 : next + 0x20);
+      i++;
+      continue;
+    }
+    text[out++] = static_cast<char>(byte);
+  }
+  text.resize(out);
+}
+}  // namespace
+
+std::optional<uint16_t> Section::findTextOccurrencePage(std::string query, const int occurrence) {
+  normalizeForSearch(query);
+  if (query.empty()) return std::nullopt;
+  std::string tail;  // the end of the previous page, for matches that cross pages
+  int seen = 0;
+  for (uint16_t page = 0; page < pageCount; page++) {
+    auto loaded = loadPage(page);
+    if (!loaded) return std::nullopt;
+    std::string text = std::move(tail);
+    for (const auto& element : loaded->elements) {
+      if (element->getTag() == TAG_PageDropCap) {
+        text += static_cast<const PageDropCap&>(*element).getText();
+      } else if (element->getTag() == TAG_PageLine) {
+        const auto& line = static_cast<const PageLine&>(*element);
+        if (!line.getBlock()) continue;
+        const auto& block = *line.getBlock();
+        for (uint16_t i = 0; i < block.wordCount(); i++) text += block.wordText(i);
+      }
+    }
+    normalizeForSearch(text);
+    size_t lastMatchEnd = 0;
+    for (size_t at = text.find(query); at != std::string::npos; at = text.find(query, at + query.size())) {
+      if (seen++ == occurrence) return page;
+      lastMatchEnd = at + query.size();
+    }
+    // Text already used by a counted match cannot start another one.
+    const size_t keep = std::min(text.size() - lastMatchEnd, query.size() - 1);
+    tail = text.substr(text.size() - keep);
+  }
+  return std::nullopt;
+}
+
 std::optional<uint16_t> Section::getCachedPageCount() const {
   HalFile f;
   if (!Storage.openFileForRead("SCT", filePath, f)) {

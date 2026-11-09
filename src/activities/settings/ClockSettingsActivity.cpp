@@ -48,6 +48,8 @@ void ClockSettingsActivity::onEnter() {
 
 const char* ClockSettingsActivity::headerTitle() const { return tr(STR_CLOCK); }
 
+int ClockSettingsActivity::listCount() const { return halClock.isAvailable() ? ITEM_COUNT : ITEM_FORMAT; }
+
 void ClockSettingsActivity::activateIndex(const int index) {
   nav.selected = index;
   app.clearTapFlash();
@@ -105,7 +107,7 @@ void ClockSettingsActivity::buildScreen(UiScreen& screen) {
 
   fui::ListProps props;
   props.items = rowItems_;
-  props.count = ITEM_COUNT;
+  props.count = listCount();
   props.action = ACTION_ROW;
   props.inputMask = fui::InputTouch;  // physical buttons stay in loop()
   props.valueInset = 8;

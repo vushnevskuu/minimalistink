@@ -27,6 +27,9 @@ class CrossPointSettings : public PersistableStore<CrossPointSettings> {
     QUICK_RESUME = 6,
     TRANSPARENT_CUSTOM = 7,
     COVER_TRANSPARENT = 8,
+    READING_MAP = 9,
+    TIME_LEFT = 10,
+    BATTERY_FILL = 11,
     SLEEP_SCREEN_MODE_COUNT
   };
   enum SLEEP_SCREEN_COVER_MODE { FIT = 0, CROP = 1, SLEEP_SCREEN_COVER_MODE_COUNT };
@@ -218,6 +221,8 @@ class CrossPointSettings : public PersistableStore<CrossPointSettings> {
   // How Select opens the reader menu: the classic full-screen list, or a toolbar
   // overlay (top/bottom bars with Contents / Text / More bottom-sheet panels)
   // painted over the page.
+  enum HOME_STYLE { HOME_STYLE_DASHBOARD = 0, HOME_STYLE_SCREENS = 1, HOME_STYLE_COUNT };
+
   enum READER_MENU_STYLE { READER_MENU_LIST = 0, READER_MENU_TOOLBAR = 1, READER_MENU_STYLE_COUNT };
 
   enum TILT_PAGE_TURN { TILT_OFF = 0, TILT_NORMAL = 1, TILT_NVERTED = 2, TILT_PAGE_TURN_COUNT };
@@ -259,6 +264,8 @@ class CrossPointSettings : public PersistableStore<CrossPointSettings> {
   uint8_t sleepScreenCoverMode = FIT;
   // Sleep screen cover filter
   uint8_t sleepScreenCoverFilter = NO_FILTER;
+  // Time Left sleep screen background (0 = dark, 1 = light)
+  uint8_t timeLeftBackground = 0;
   // Status bar settings
   uint8_t statusBarChapterPageCount = 1;
   uint8_t statusBarBookProgressPercentage = 1;
@@ -340,6 +347,10 @@ class CrossPointSettings : public PersistableStore<CrossPointSettings> {
   // OPDS server list. Persisted via a category-less SettingInfo::String in
   // SettingsList.h, so it stays out of the on-device Settings screen.
   char opdsDownloadFolder[64] = "";
+  // Home screen blocks, top to bottom: calendar,current,finished,menu. Empty is the default.
+  char homeLayout[48] = "";
+  // Home screen style on 480-wide button devices.
+  uint8_t homeStyle = HOME_STYLE_SCREENS;
   // On-disk filename format for OPDS downloads (0=Author-Title default, 1=Title-Author,
   // 2=Title). See OpdsFilenameFormat. Persisted via a category-less SettingInfo::Enum,
   // edited from the OPDS server list; hidden from the on-device Settings screen.
