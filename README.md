@@ -1,6 +1,6 @@
-# CrossPoint Reader
+# Minimalistink
 
-> **This is a personal fork** with a redesigned interface for the Xteink X4. It is not an official CrossPoint release. Everything below the screenshots is the original project's README.
+> A personal fork of [CrossPoint Reader](https://github.com/crosspoint-reader/crosspoint-reader) with a redesigned interface for the Xteink X4. It is not an official CrossPoint release. Everything below the screenshots is the original project's README.
 
 ## Interface in this fork
 
