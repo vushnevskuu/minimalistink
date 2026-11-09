@@ -376,7 +376,7 @@ void ActivityManager::goHome(HomeMenuItem initialMenuItem, bool cleanInitialRefr
       initialMenuItem = HomeMenuItem::SETTINGS_MENU;
     }
   }
-  if (SETTINGS.homeStyle == CrossPointSettings::HOME_STYLE_SCREENS && homeLayoutsSupported(renderer)) {
+  if (SETTINGS.homeStyle == CrossPointSettings::HOME_STYLE_SCREENS && homePagesSupported(renderer)) {
     replaceActivity(std::make_unique<HomePagesActivity>(renderer, mappedInput, initialMenuItem, cleanInitialRefresh));
     return;
   }

@@ -234,6 +234,11 @@ bool homeLayoutsSupported(const GfxRenderer& renderer) {
          std::min(renderer.getScreenWidth(), renderer.getScreenHeight()) == HOME_DASHBOARD_WIDTH;
 }
 
+bool homePagesSupported(const GfxRenderer& renderer) {
+  return !BoardConfig::hasTouch() && !UITheme::getInstance().hasCoverGridHome() &&
+         renderer.getScreenWidth() >= HOME_DASHBOARD_WIDTH && renderer.getScreenHeight() > renderer.getScreenWidth();
+}
+
 const char* homeBookCountWord(const uint32_t count) {
   if (I18N.getLanguage() == Language::RU) {
     const uint32_t lastTwo = count % 100;

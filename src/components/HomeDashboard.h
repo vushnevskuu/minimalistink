@@ -33,6 +33,8 @@ struct HomeDashboardProps {
 
 // True on portrait-480 button devices, whatever the current orientation.
 bool homeLayoutsSupported(const GfxRenderer& renderer);
+// The three-screen Home adapts to wider panels; the single-screen dashboard does not.
+bool homePagesSupported(const GfxRenderer& renderer);
 const char* homeBookCountWord(uint32_t count);
 
 // Top-to-bottom blocks from a comma-separated setting. An empty value is the

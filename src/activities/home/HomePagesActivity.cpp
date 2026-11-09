@@ -32,7 +32,6 @@
 
 namespace {
 constexpr int MARGIN = 28;
-constexpr int HINTS_TOP = 764;
 constexpr int COVER_WIDTH = 176;
 constexpr int COVER_HEIGHT = 264;
 constexpr int SHELF_COLUMNS = 2;
@@ -222,7 +221,7 @@ void HomePagesActivity::loadCurrentBook() {
   if (!readingleft::loadExcerpt(currentBook[0].path.c_str(), excerpt)) return;
   const int pageWidth = renderer.getScreenWidth();
   const int maxWidth = pageWidth - 2 * MARGIN;
-  const int maxLines = (HINTS_TOP - 400) / renderer.getLineHeight(EXCERPT_FONT);
+  const int maxLines = (hintsTop() - 400) / renderer.getLineHeight(EXCERPT_FONT);
   std::string line;
   size_t cursor = 0;
   while (cursor < excerpt.size() && static_cast<int>(excerptLines.size()) < maxLines) {
@@ -516,6 +515,8 @@ void HomePagesActivity::renderReadingPage(const int yOffset) const {
 void HomePagesActivity::renderShelfPage() const {
   if (shelf.shelfCount == 0) return;
   const int pageWidth = renderer.getScreenWidth();
+  // Covers keep their size, so a wider screen gets a centred grid.
+  const int margin = (pageWidth - SHELF_COLUMNS * SHELF_COVER_WIDTH - SHELF_GAP_X) / 2;
   const bool isReadShelf = !isAllBooks() && shelf.id == "read";
   const char* shelfName = isAllBooks()          ? tr(STR_ALL_BOOKS)
                           : !shelf.name.empty() ? shelf.name.c_str()
@@ -531,24 +532,24 @@ void HomePagesActivity::renderShelfPage() const {
     } else {
       snprintf(range, sizeof(range), "%d-%d / %d", firstShown, lastShown, shelfTotal);
     }
-    renderer.drawText(UI_12_FONT_ID, pageWidth - MARGIN - renderer.getTextWidth(UI_12_FONT_ID, range), 34, range);
+    renderer.drawText(UI_12_FONT_ID, pageWidth - margin - renderer.getTextWidth(UI_12_FONT_ID, range), 34, range);
   }
-  const int nameWidth = pageWidth - 2 * MARGIN - renderer.getTextWidth(UI_12_FONT_ID, range) - 12;
-  renderer.drawText(UI_12_FONT_ID, MARGIN, 34, renderer.truncatedText(UI_12_FONT_ID, shelfName, nameWidth).c_str());
+  const int nameWidth = pageWidth - 2 * margin - renderer.getTextWidth(UI_12_FONT_ID, range) - 12;
+  renderer.drawText(UI_12_FONT_ID, margin, 34, renderer.truncatedText(UI_12_FONT_ID, shelfName, nameWidth).c_str());
 
   if (shelfTotal == 0) {
     for (int i = 0; i < SHELF_PAGE_BOOKS; i++) {
-      const int x = MARGIN + (i % SHELF_COLUMNS) * (SHELF_COVER_WIDTH + SHELF_GAP_X);
+      const int x = margin + (i % SHELF_COLUMNS) * (SHELF_COVER_WIDTH + SHELF_GAP_X);
       const int y = 72 + (i / SHELF_COLUMNS) * SHELF_ROW_PITCH;
       renderer.drawRoundedRect(x, y, SHELF_COVER_WIDTH, SHELF_COVER_HEIGHT, 1, SHELF_FRAME_RADIUS, true);
     }
-    UITheme::drawCenteredWrappedText(renderer, Rect{MARGIN, 72 + SHELF_COVER_HEIGHT, pageWidth - 2 * MARGIN, 52},
+    UITheme::drawCenteredWrappedText(renderer, Rect{margin, 72 + SHELF_COVER_HEIGHT, pageWidth - 2 * margin, 52},
                                      UI_10_FONT_ID, tr(STR_SHELF_EMPTY), 1);
     return;
   }
 
   for (int i = 0; i < static_cast<int>(shelfBooks.size()); i++) {
-    const int x = MARGIN + (i % SHELF_COLUMNS) * (SHELF_COVER_WIDTH + SHELF_GAP_X);
+    const int x = margin + (i % SHELF_COLUMNS) * (SHELF_COVER_WIDTH + SHELF_GAP_X);
     const int y = 72 + (i / SHELF_COLUMNS) * SHELF_ROW_PITCH;
     drawHomeCover(renderer, shelfBooks[i], SHELF_COVER_HEIGHT, x, y, SHELF_COVER_WIDTH);
 
@@ -601,7 +602,8 @@ void HomePagesActivity::renderStatisticsPage() const {
   renderer.drawText(UI_12_FONT_ID, pageWidth - MARGIN - renderer.getTextWidth(UI_12_FONT_ID, label), 34, label);
 
   // Two densities: half a month per line, or a whole month per line.
-  constexpr int AREA = 612;
+  const int pageHeight = renderer.getScreenHeight();
+  const int area = pageHeight - 188;
   constexpr int LABEL_HEIGHT = 24;
   const int monthCount = today.tm_mon - stats.firstMonth + 1;
   int perLine = 31;
@@ -617,11 +619,17 @@ void HomePagesActivity::renderStatisticsPage() const {
     gap = density.gap;
     pitch = (pageWidth - 2 * MARGIN) / perLine;
     total = monthCount * (LABEL_HEIGHT + ((31 + perLine - 1) / perLine) * pitch + gap) - gap;
-    if (total <= AREA) break;
+    if (total <= area) break;
+  }
+  if (total > area && monthCount > 1) {
+    // A wider screen makes the rows taller: take it out of the space between months.
+    const int rows = (31 + perLine - 1) / perLine;
+    gap = std::max(4, (area - monthCount * (LABEL_HEIGHT + rows * pitch)) / (monthCount - 1));
+    total = monthCount * (LABEL_HEIGHT + rows * pitch + gap) - gap;
   }
   const int lines = (31 + perLine - 1) / perLine;
   const int blockPitch = LABEL_HEIGHT + lines * pitch + gap;
-  const int mapTop = 84 + (AREA - total) / 2;
+  const int mapTop = 84 + (area - total) / 2;
 
   for (int month = stats.firstMonth; month <= today.tm_mon; month++) {
     const int y = mapTop + (month - stats.firstMonth) * blockPitch;
@@ -649,10 +657,10 @@ void HomePagesActivity::renderStatisticsPage() const {
   for (int i = 0; i < 4; i++) {
     const int center = MARGIN + columnWidth * i + columnWidth / 2;
     snprintf(label, sizeof(label), "%lu", static_cast<unsigned long>(figures[i].value));
-    renderer.drawText(FIGURE_FONT, center - renderer.getTextWidth(FIGURE_FONT, label, EpdFontFamily::BOLD) / 2, 686,
-                      label, true, EpdFontFamily::BOLD);
-    renderer.drawText(SMALL_FONT_ID, center - renderer.getTextWidth(SMALL_FONT_ID, figures[i].caption) / 2, 738,
-                      figures[i].caption);
+    renderer.drawText(FIGURE_FONT, center - renderer.getTextWidth(FIGURE_FONT, label, EpdFontFamily::BOLD) / 2,
+                      pageHeight - 114, label, true, EpdFontFamily::BOLD);
+    renderer.drawText(SMALL_FONT_ID, center - renderer.getTextWidth(SMALL_FONT_ID, figures[i].caption) / 2,
+                      pageHeight - 62, figures[i].caption);
   }
 }
 
@@ -672,7 +680,7 @@ void HomePagesActivity::render(RenderLock&&) {
 
   // Content that slid up must not run under the status row or the buttons.
   renderer.fillRect(0, 0, pageWidth, 30, false);
-  renderer.fillRect(0, HINTS_TOP, pageWidth, renderer.getScreenHeight() - HINTS_TOP, false);
+  renderer.fillRect(0, hintsTop(), pageWidth, renderer.getScreenHeight() - hintsTop(), false);
   GUI.drawHeader(renderer, Rect{0, metrics.topPadding, pageWidth, 24}, nullptr, nullptr, false);
   drawPageDots();
 

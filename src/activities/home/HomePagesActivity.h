@@ -51,6 +51,7 @@ class HomePagesActivity final : public Activity {
   void moveShelf(int delta);
   void nextShelf();
   bool isAllBooks() const { return shelfIndex == shelf.shelfCount; }
+  int hintsTop() const { return renderer.getScreenHeight() - 36; }
   int firstPage() const { return currentBook.empty() ? PAGE_SHELF : PAGE_READING; }
   void refreshLibraryIndex();
   void openShelfPage();
