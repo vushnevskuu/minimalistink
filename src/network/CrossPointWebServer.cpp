@@ -5,6 +5,7 @@
 #include <BookKey.h>
 #include <Crypto.h>
 #include <DeviceSecret.h>
+#include <Epub.h>
 #include <FsHelpers.h>
 #include <HalGPIO.h>
 #include <HalMemory.h>
@@ -21,6 +22,7 @@
 #include <Util.h>
 #include <WiFi.h>
 #include <WolfsslCrypto.h>
+#include <Xtc.h>
 #include <base64.h>
 #include <esp_efuse.h>
 #include <esp_efuse_table.h>
@@ -295,6 +297,7 @@ class CrossPointWebServer::RouteHandler final : public RequestHandler {
     using S = CrossPointWebServer;
     static constexpr Route ROUTES[] = {
         {"/", HTTP_GET, [](S& s) { s.handleRoot(); }, nullptr},
+        {"/home", HTTP_GET, [](S& s) { s.handleBuiltInHome(); }, nullptr},
         {"/files", HTTP_GET, [](S& s) { s.handleFileList(); }, nullptr},
         {"/js/jszip.min.js", HTTP_GET, [](S& s) { s.handleJszip(); }, nullptr},
         {"/js/epub-optimizer.js", HTTP_GET,
@@ -323,6 +326,7 @@ class CrossPointWebServer::RouteHandler final : public RequestHandler {
 
         {"/api/status", HTTP_GET, [](S& s) { s.handleStatus(); }, nullptr},
         {"/api/open", HTTP_POST, [](S& s) { s.handleOpenPlace(); }, nullptr},
+        {"/api/cover", HTTP_GET, [](S& s) { s.handleCover(); }, nullptr},
         {"/api/files", HTTP_GET, [](S& s) { s.handleFileListData(); }, nullptr},
         {"/download", HTTP_GET, [](S& s) { s.handleDownload(); }, nullptr},
         {"/upload", HTTP_POST, [](S& s) { s.handleUploadPost(s.upload); }, [](S& s) { s.handleUpload(s.upload); }},
@@ -693,6 +697,17 @@ static void sendStaticContent(WebServer* server, const char* data, size_t len, c
 }
 
 void CrossPointWebServer::handleRoot() const {
+  // The phone app, when it is on the card, is the front page of File Transfer.
+  constexpr char APP_PAGE[] = "/book-uploader/index.html";
+  if (openRequestsEnabled && Storage.exists(APP_PAGE)) {
+    server->sendHeader("Location", APP_PAGE, true);
+    server->send(302, "text/plain", "");
+    return;
+  }
+  handleBuiltInHome();
+}
+
+void CrossPointWebServer::handleBuiltInHome() const {
   sendStaticContent(server.get(), HomePageHtml, sizeof(HomePageHtml), HomePageHtmlETag, "text/html");
   LOG_DBG("WEB", "Served root page");
 }
@@ -713,6 +728,50 @@ void CrossPointWebServer::handleNotFound() const {
   String message = "404 Not Found\n\n";
   message += "URI: " + server->uri() + "\n";
   server->send(404, "text/plain", message);
+}
+
+void CrossPointWebServer::handleCover() const {
+  const String path = normalizeWebPath(server->arg("path"));
+  const std::string_view name{path.c_str(), path.length()};
+  std::string cacheDir;
+  if (FsHelpers::hasReflowableBookExtension(name)) {
+    if (auto epub = makeUniqueNoThrow<Epub>(path.c_str(), "/.crosspoint")) cacheDir = epub->getCachePath();
+  } else if (FsHelpers::hasXtcExtension(name)) {
+    if (auto xtc = makeUniqueNoThrow<Xtc>(path.c_str(), "/.crosspoint")) cacheDir = xtc->getCachePath();
+  }
+
+  // Thumbnails exist once the reader has drawn the book. An empty one marks a book without a cover.
+  char best[32] = "";
+  size_t bestSize = 0;
+  if (!cacheDir.empty()) {
+    HalFile dir = Storage.open(cacheDir.c_str());
+    if (dir && dir.isDirectory()) {
+      char entryName[32] = "";
+      for (HalFile entry = dir.openNextFile(); entry; entry = dir.openNextFile()) {
+        entry.getName(entryName, sizeof(entryName));
+        const size_t length = strlen(entryName);
+        if (strncmp(entryName, "thumb_", 6) == 0 && length > 4 && strcmp(entryName + length - 4, ".bmp") == 0 &&
+            entry.size() > bestSize) {
+          bestSize = entry.size();
+          snprintf(best, sizeof(best), "%s", entryName);
+        }
+      }
+    }
+  }
+  if (bestSize == 0) {
+    server->send(404, "text/plain", "No cover yet");
+    return;
+  }
+
+  HalFile file = Storage.open((cacheDir + "/" + best).c_str());
+  if (!file) {
+    server->send(500, "text/plain", "Failed to open cover");
+    return;
+  }
+  server->setContentLength(file.size());
+  server->sendHeader("Cache-Control", "max-age=86400");
+  server->send(200, "image/bmp", "");
+  streamFileToClient(file);
 }
 
 void CrossPointWebServer::handleOpenPlace() {

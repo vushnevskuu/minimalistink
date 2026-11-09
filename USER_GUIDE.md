@@ -415,7 +415,7 @@ For web-based Wi-Fi network management, see [Web Settings (Wi-Fi + OPDS)](#366-w
 While in **File Transfer** mode, the web settings page includes management cards for both **Wi-Fi Networks** and **OPDS Servers**.
 
 1. On device: open **File Transfer** and connect through **Join a Network** or **Create Hotspot**.
-2. In a browser, open `http://<device-ip>/settings` or `http://crosspoint.local`.
+2. In a browser, open `http://<device-ip>/settings` or `http://crosspoint.local/settings`.
 3. In **Wi-Fi Networks**, add, edit, or delete saved network entries (SSID + optional password).
 4. In **OPDS Servers**, add, edit, or delete OPDS catalogs.
 
@@ -711,7 +711,7 @@ The UI includes Arabic and Hebrew (menus use built-in fonts with presentation-fo
 
 ## 5. Reader Menu
 
-On devices with buttons only, the menu is one screen: two icons for portrait and landscape, a chapter list that opens in place, a font list, font size buttons, and a QR code of the current page. Footnotes, Lookup, Frontlight and Bluetooth appear below them only when they apply. The other text settings are in **Settings -> Reader** and in the book uploader web app on your phone, which also has word search. Picking a search result there closes File Transfer and opens that place in the book. The rest of this section, including bookmarks and clippings, describes the menu on touch devices and the Toolbar menu style (**Settings -> Reader -> Reader Menu Style**).
+On devices with buttons only, the menu is one screen: two icons for portrait and landscape, a chapter list that opens in place, a font list, font size buttons, and a QR code of the current page. Footnotes, Lookup, Frontlight and Bluetooth appear below them only when they apply. The other text settings are in **Settings -> Reader** and in the book uploader web app on your phone, which also has word search. Picking a search result there closes File Transfer and opens that place in the book. When the app is on the card, the File Transfer address opens it directly; the built-in page is at `/home`. The rest of this section, including bookmarks and clippings, describes the menu on touch devices and the Toolbar menu style (**Settings -> Reader -> Reader Menu Style**).
 
 Press **Confirm** while reading to open the Reader Menu. From here you can access reading utilities and navigation options without leaving the book.
 

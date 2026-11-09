@@ -64,6 +64,8 @@ CrossPoint-Reader
    phones and computers open the reader's home page automatically after
    joining.
 
+   When the phone app is on the card at `/book-uploader/index.html`, the main address opens it. The built-in home page is at `/home`.
+
 The reader displays one QR code for joining the hotspot and another QR code for
 opening the web interface.
 

@@ -1,7 +1,7 @@
 <header class="brand">
   <div class="brand-inner">
     <h1>
-      <a class="brand-link" href="/"
+      <a class="brand-link" href="/home"
         ><img
           class="brand-logo"
           src="/assets/crosspoint-icon.svg"
@@ -12,7 +12,7 @@
       >
     </h1>
     <nav class="nav-links desktop-nav">
-      <a href="/">Home</a>
+      <a href="/home">Home</a>
       <a href="/files">File Manager</a>
       <a href="/settings">Settings</a>
       <a href="/fonts">Fonts</a>
@@ -28,7 +28,7 @@
       </svg>
     </summary>
     <nav class="nav-links mobile-links">
-      <a href="/">Home</a>
+      <a href="/home">Home</a>
       <a href="/files">File Manager</a>
       <a href="/settings">Settings</a>
       <a href="/fonts">Fonts</a>

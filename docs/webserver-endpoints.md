@@ -15,7 +15,8 @@ the IP address shown on the device screen.
 
 | Method | Path | Purpose |
 |--------|------|---------|
-| `GET` | `/` | Home/status page |
+| `GET` | `/` | Home/status page. In File Transfer, redirects to `/book-uploader/index.html` when that file is on the card |
+| `GET` | `/home` | Home/status page, always |
 | `GET` | `/files` | File manager page |
 | `GET` | `/settings` | Web settings page |
 | `GET` | `/fonts` | SD-card font manager page |
@@ -250,6 +251,12 @@ start of that chapter.
 
 Responses: `200` on success, `400` for invalid input, `404` if the file is missing, `409` outside the
 File Transfer screen, `500` if the request could not be saved.
+
+## Book covers
+
+### `GET /api/cover?path=/Books/x.epub`
+
+Returns the largest cached cover thumbnail of a book as `image/bmp`. A book has a thumbnail once the reader has drawn its cover. Responses: `200` on success, `404` if there is no thumbnail or the path is not an EPUB, TXT, MD or XTC book, `500` if the thumbnail cannot be opened.
 
 ## Settings API
 
